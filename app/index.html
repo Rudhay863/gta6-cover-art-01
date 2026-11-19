@@ -3,21 +3,135 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cover Snap</title>
-<link rel="stylesheet" href="./style.css">
+<title>Vice Cover — GTA-style cover art maker</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main class="app">
-  <section class="controls">
-    <h1>Cover Snap</h1>
-    <p>A photo and a caption, made into a square cover.</p>
-    <label>Photo <input id="photo" type="file" accept="image/*"></label>
-    <label>Caption <input id="caption" type="text" maxlength="40" value="Sunset Heist"></label>
-    <button id="export" type="button">Export PNG 1080 x 1080</button>
-    <p id="status" role="status"></p>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-star">★</span>
+    <div>
+      <h1>VICE COVER</h1>
+      <p>Turn a photo + a caption into poster cover art</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <span id="status" class="status" role="status">Ready — sample photo loaded</span>
+    <button id="exportBtn" class="btn primary" type="button">↓ Export PNG</button>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="stage" aria-label="Live poster preview">
+    <div class="stage-head">
+      <span class="stage-title">LIVE PREVIEW</span>
+      <span id="sizeLabel" class="stage-size">1920 × 1080</span>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="poster" width="1920" height="1080"></canvas>
+    </div>
+    <p class="stage-hint">Click a panel to select it, then crop it with the sliders. Drag a photo onto any panel to fill it.</p>
+    <div id="panelTabs" class="panel-tabs" role="group" aria-label="Choose a panel to edit">
+      <button type="button" data-panel="0" class="tab active">1 · Hero</button>
+      <button type="button" data-panel="1" class="tab">2 · Tall</button>
+      <button type="button" data-panel="2" class="tab">3 · Small</button>
+      <button type="button" data-panel="3" class="tab">4 · Wide</button>
+    </div>
   </section>
-  <canvas id="cover" width="1080" height="1080" aria-label="The cover"></canvas>
+
+  <aside class="controls" aria-label="Cover controls">
+    <section class="card">
+      <h2>1 · Photo</h2>
+      <div class="photo-row">
+        <label class="btn file-btn" for="fileInput">↑ Load your photo</label>
+        <input id="fileInput" type="file" accept="image/*" hidden>
+        <button id="cityBtn" class="btn" type="button">Sunset city</button>
+      </div>
+      <div class="samples" role="group" aria-label="Built-in sample photos">
+        <button type="button" class="sample" data-sample="pier">
+          <img src="samples/pier.jpg" alt="Sample: neon pier at dusk">
+          <span>Pier</span>
+        </button>
+        <button type="button" class="sample" data-sample="boulevard">
+          <img src="samples/boulevard.jpg" alt="Sample: sunset boulevard">
+          <span>Boulevard</span>
+        </button>
+        <button type="button" class="sample" data-sample="city">
+          <img src="samples/city-thumb.png" alt="Sample: drawn sunset cityscape">
+          <span>Cityscape</span>
+        </button>
+      </div>
+      <label class="check">
+        <input id="samePhoto" type="checkbox" checked>
+        <span>Same photo in all four panels</span>
+      </label>
+      <p class="note">Photos are read on your machine and never uploaded.</p>
+      <p id="photoError" class="error" hidden>That file is not an image — try a JPG or PNG photo.</p>
+    </section>
+
+    <section class="card">
+      <h2>2 · Crop the selected panel</h2>
+      <label class="slider-label">Zoom <output id="zoomOut">1.00×</output></label>
+      <input id="zoom" type="range" min="1" max="2.5" step="0.01" value="1">
+      <label class="slider-label">Position left–right <output id="panXOut">50%</output></label>
+      <input id="panX" type="range" min="0" max="1" step="0.01" value="0.5">
+      <label class="slider-label">Position up–down <output id="panYOut">42%</output></label>
+      <input id="panY" type="range" min="0" max="1" step="0.01" value="0.42">
+      <div class="btn-row">
+        <button id="fitBtn" class="btn" type="button">Fit whole photo</button>
+        <button id="resetCropBtn" class="btn" type="button">Reset crop</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>3 · Caption</h2>
+      <label class="field-label" for="captionInput">Main caption</label>
+      <input id="captionInput" type="text" value="SUNSET HEIST" maxlength="24" autocomplete="off">
+      <label class="field-label" for="subtitleInput">Subtitle</label>
+      <input id="subtitleInput" type="text" value="VICE CITY" maxlength="24" autocomplete="off">
+      <label class="slider-label">Letter size <output id="capSizeOut">100%</output></label>
+      <input id="capSize" type="range" min="0.6" max="1.5" step="0.05" value="1">
+      <div class="swatches" role="group" aria-label="Caption colour">
+        <button type="button" class="swatch active" data-color="white" style="--c:#ffffff" aria-label="White"></button>
+        <button type="button" class="swatch" data-color="pink" style="--c:#ff5da2" aria-label="Neon pink"></button>
+        <button type="button" class="swatch" data-color="gold" style="--c:#ffc53d" aria-label="Gold"></button>
+        <button type="button" class="swatch" data-color="cyan" style="--c:#4de8e8" aria-label="Cyan"></button>
+      </div>
+      <label class="check">
+        <input id="outlineCheck" type="checkbox" checked>
+        <span>Dark outline on the letters</span>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>4 · Colour grade</h2>
+      <div id="gradeBtns" class="grade-row" role="group" aria-label="Colour grade">
+        <button type="button" class="btn grade active" data-grade="sunset">Sunset</button>
+        <button type="button" class="btn grade" data-grade="neon">Neon Nights</button>
+        <button type="button" class="btn grade" data-grade="golden">Golden Hour</button>
+        <button type="button" class="btn grade" data-grade="noir">Noir Pink</button>
+      </div>
+      <label class="slider-label">Grade strength <output id="gradeOut">100%</output></label>
+      <input id="gradeStrength" type="range" min="0" max="1.5" step="0.05" value="1">
+    </section>
+
+    <section class="card">
+      <h2>5 · Post size &amp; export</h2>
+      <div id="sizeBtns" class="size-row" role="group" aria-label="Export size">
+        <button type="button" class="btn size" data-size="square">□ 1080×1080</button>
+        <button type="button" class="btn size" data-size="portrait">▯ 1080×1350</button>
+        <button type="button" class="btn size active" data-size="wide">▭ 1920×1080</button>
+      </div>
+      <button id="exportBtn2" class="btn primary big" type="button">↓ Export PNG</button>
+      <p class="note">Exports the poster exactly as previewed, at full resolution.</p>
+    </section>
+  </aside>
 </main>
-<script type="module" src="./src/main.js"></script>
+
+<footer class="foot">
+  <p>VICE COVER — an original cover maker. No Rockstar Games logo, artwork or font. Fonts: Liberation Sans (SIL Open Font License). Sample photos made with an image model for make.fun; your photos never leave this machine.</p>
+</footer>
+
+<script type="module" src="src/main.js"></script>
 </body>
 </html>
